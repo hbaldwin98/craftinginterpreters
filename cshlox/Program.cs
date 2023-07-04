@@ -1,6 +1,4 @@
-﻿// read from args
-
-using cshlox;
+﻿using cshlox;
 
 if (args.Length > 1)
 {

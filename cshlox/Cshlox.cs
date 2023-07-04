@@ -8,7 +8,6 @@ public class Cshlox
     {
         try
         {
-
             string text = File.ReadAllText(Path.GetFullPath(path));
             Run(text);
 

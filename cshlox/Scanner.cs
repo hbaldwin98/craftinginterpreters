@@ -25,7 +25,9 @@ public class Scanner
         { "this", TokenType.THIS },
         { "true", TokenType.TRUE },
         { "var", TokenType.VAR },
-        { "while", TokenType.WHILE }
+        { "while", TokenType.WHILE },
+        { "when", TokenType.WHEN },
+        { "maybe", TokenType.MAYBE },
     };
 
     public Scanner(string source)
@@ -115,6 +117,22 @@ public class Scanner
         }
     }
 
+    private void AddToken(TokenType type)
+    {
+        AddToken(type, null);
+    }
+
+    private void AddToken(TokenType type, object literal)
+    {
+        string text = Source.Substring(Start, Current - Start);
+        Tokens.Add(new Token(type, text, literal, Line));
+    }
+
+    private char Advance()
+    {
+        return Source.ElementAt(Current++);
+    }
+
     private void Identifier()
     {
         while (IsAlphaNumeric(Peek())) { Advance(); }
@@ -166,12 +184,6 @@ public class Scanner
         AddToken(TokenType.STRING, value);
     }
 
-
-    private char Advance()
-    {
-        return Source.ElementAt(Current++);
-    }
-
     private bool Match(char expected)
     {
         if (IsAtEnd()) { return false; }
@@ -197,17 +209,6 @@ public class Scanner
         }
 
         return Source.ElementAt(Current + 1);
-    }
-
-    private void AddToken(TokenType type)
-    {
-        AddToken(type, null);
-    }
-
-    private void AddToken(TokenType type, object literal)
-    {
-        string text = Source.Substring(Start, Current - Start);
-        Tokens.Add(new Token(type, text, literal, Line));
     }
 
     private bool IsAtEnd()

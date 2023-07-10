@@ -8,6 +8,7 @@ public class AstPrinter : IVisitor<string>
     {
         return expr.Accept(this);
     }
+
     public string VisitBinaryExpression(Binary expression)
     {
         return Parenthesize(expression.Op.Lexeme, expression.Left, expression.Right);
@@ -36,7 +37,7 @@ public class AstPrinter : IVisitor<string>
 
         builder.Append("(").Append(name);
 
-        foreach (Expression expr in expressions) 
+        foreach (Expression expr in expressions)
         {
             builder.Append(" ");
             builder.Append(expr.Accept(this));

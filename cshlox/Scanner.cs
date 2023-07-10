@@ -2,11 +2,11 @@
 
 public class Scanner
 {
-    private string Source { get; }
-    private List<Token> Tokens = new List<Token>();
-    private int Start = 0;
-    private int Current = 0;
-    private int Line = 1;
+    private string _source { get; }
+    private List<Token> _tokens = new List<Token>();
+    private int _start = 0;
+    private int _current = 0;
+    private int _line = 1;
 
     private static readonly Dictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>()
     {
@@ -32,20 +32,20 @@ public class Scanner
 
     public Scanner(string source)
     {
-        Source = source;
+        _source = source;
     }
 
     public List<Token> ScanTokens()
     {
         while (!IsAtEnd())
         {
-            Start = Current;
+            _start = _current;
             ScanToken();
         }
 
-        Tokens.Add(new Token(TokenType.EOF, "", null, Line));
+        _tokens.Add(new Token(TokenType.EOF, "", null, _line));
 
-        return Tokens;
+        return _tokens;
     }
 
     private void ScanToken()
@@ -54,7 +54,6 @@ public class Scanner
         switch (c)
         {
             case '(': AddToken(TokenType.LEFT_PAREN); break;
-
             case ')': AddToken(TokenType.RIGHT_PAREN); break;
             case '{': AddToken(TokenType.LEFT_BRACE); break;
             case '}': AddToken(TokenType.RIGHT_BRACE); break;
@@ -106,13 +105,13 @@ public class Scanner
                 // Ignore whitespace.
                 break;
             case '\n':
-                Line++;
+                _line++;
                 break;
             case '"': String(); break;
             default:
                 if (IsDigit(c)) { Number(); }
                 else if (IsAlpha(c)) { Identifier(); }
-                else { Cshlox.Error(Line, "Unexpected character."); }
+                else { Cshlox.Error(_line, "Unexpected character."); }
                 break;
         }
     }
@@ -124,19 +123,19 @@ public class Scanner
 
     private void AddToken(TokenType type, object literal)
     {
-        string text = Source.Substring(Start, Current - Start);
-        Tokens.Add(new Token(type, text, literal, Line));
+        string text = _source.Substring(_start, _current - _start);
+        _tokens.Add(new Token(type, text, literal, _line));
     }
 
     private char Advance()
     {
-        return Source.ElementAt(Current++);
+        return _source.ElementAt(_current++);
     }
 
     private void Identifier()
     {
         while (IsAlphaNumeric(Peek())) { Advance(); }
-        string text = Source.Substring(Start, Current - Start);
+        string text = _source.Substring(_start, _current - _start);
 
         if (!Keywords.TryGetValue(text, out var type))
         {
@@ -157,7 +156,7 @@ public class Scanner
             while (IsDigit(Peek())) { Advance(); }
         }
 
-        AddToken(TokenType.NUMBER, Double.Parse(Source.Substring(Start, Current - Start)));
+        AddToken(TokenType.NUMBER, Double.Parse(_source.Substring(_start, _current - _start)));
     }
 
     private void String()
@@ -166,7 +165,7 @@ public class Scanner
         {
             if (Peek() == '\n')
             {
-                Line++;
+                _line++;
             }
 
             Advance();
@@ -174,22 +173,22 @@ public class Scanner
 
         if (IsAtEnd())
         {
-            Cshlox.Error(Line, "Unterminated string");
+            Cshlox.Error(_line, "Unterminated string");
             return;
         }
 
         Advance();
 
-        string value = Source.Substring(Start + 1, (Current - Start) - 1);
+        string value = _source.Substring(_start + 1, (_current - _start) - 1);
         AddToken(TokenType.STRING, value);
     }
 
     private bool Match(char expected)
     {
         if (IsAtEnd()) { return false; }
-        if (Source.ElementAt(Current) != expected) { return false; }
+        if (_source.ElementAt(_current) != expected) { return false; }
 
-        Current++;
+        _current++;
 
         return true;
     }
@@ -198,22 +197,22 @@ public class Scanner
     {
         if (IsAtEnd()) { return '\0'; }
 
-        return Source.ElementAt(Current);
+        return _source.ElementAt(_current);
     }
 
     private char PeekNext()
     {
-        if (Current + 1 >= Source.Length)
+        if (_current + 1 >= _source.Length)
         {
             return '\0';
         }
 
-        return Source.ElementAt(Current + 1);
+        return _source.ElementAt(_current + 1);
     }
 
     private bool IsAtEnd()
     {
-        return Current >= Source.Length;
+        return _current >= _source.Length;
     }
 
     private bool IsAlphaNumeric(char c)

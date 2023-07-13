@@ -2,7 +2,9 @@
 
 public class Cshlox
 {
+    private static Interpreter _interpreter = new Interpreter();
     public static bool HadError = false;
+    public static bool HadRuntimeError = false;
 
     public static void RunFile(string path)
     {
@@ -11,10 +13,8 @@ public class Cshlox
             string text = File.ReadAllText(Path.GetFullPath(path));
             Run(text);
 
-            if (HadError)
-            {
-                Environment.Exit(-1);
-            }
+            if (HadError) { Environment.Exit(65); }
+            if (HadRuntimeError) { Environment.Exit(70); }
         }
         catch (Exception ex)
         {
@@ -49,13 +49,13 @@ public class Cshlox
     {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.ScanTokens();
-        
+
         Parser parser = new Parser(tokens);
         Expression expr = parser.Parse();
 
         if (HadError) return;
 
-        Console.WriteLine(new AstPrinter().Print(expr));
+        _interpreter.Interpret(expr);
     }
 
     public static void Error(int line, string message)
@@ -73,6 +73,13 @@ public class Cshlox
         {
             Report(token.Line, " at '" + token.Lexeme + "'", message);
         }
+    }
+
+    public static void RuntimeError(RuntimeError error)
+    {
+        Console.Error.WriteLine(error.Message + "\n[line " + error.Token.Line + "]");
+
+        HadRuntimeError = true;
     }
 
     private static void Report(int line, string where, string message)

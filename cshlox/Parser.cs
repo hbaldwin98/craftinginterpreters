@@ -12,6 +12,19 @@ public class Parser
         _tokens = tokens;
     }
 
+    public Expression Parse()
+    {
+        try
+        {
+            return Expression();
+        }
+        catch (ParseError error)
+        {
+            return null;
+        }
+    }
+
+
     private Expression Expression()
     {
         return Equality();

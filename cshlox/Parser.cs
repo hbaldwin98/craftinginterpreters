@@ -12,22 +12,42 @@ public class Parser
         _tokens = tokens;
     }
 
-    public Expression Parse()
+    public List<Statement> Parse()
     {
-        try
+        List<Statement> statements = new List<Statement>();
+        
+        while (!IsAtEnd())
         {
-            return Expression();
+            statements.Add(Statement());
         }
-        catch (ParseError error)
-        {
-            return null;
-        }
-    }
 
+        return statements;
+    }
 
     private Expression Expression()
     {
         return Equality();
+    }
+
+    private Statement Statement()
+    {
+        if (Match(TokenType.PRINT)) { return PrintStatement(); }
+
+        return ExpressionStatement();
+    }
+
+    private Statement PrintStatement()
+    {
+        Expression value = Expression();
+        Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+        return new Print(value);
+    }
+
+    private Statement ExpressionStatement()
+    {
+        Expression expr = Expression();
+        Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+        return new StatementExpression(expr);
     }
 
     private Expression Equality()

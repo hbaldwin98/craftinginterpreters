@@ -51,11 +51,11 @@ public class Cshlox
         List<Token> tokens = scanner.ScanTokens();
 
         Parser parser = new Parser(tokens);
-        Expression expr = parser.Parse();
+        List<Statement> statements = parser.Parse();
 
         if (HadError) return;
 
-        _interpreter.Interpret(expr);
+        _interpreter.Interpret(statements);
     }
 
     public static void Error(int line, string message)

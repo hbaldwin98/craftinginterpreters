@@ -2,7 +2,7 @@
 
 namespace cshlox;
 
-public class AstPrinter : IVisitor<string>
+public class AstPrinter : IExpressionVisitor<string>
 {
     public string Print(Expression expr)
     {

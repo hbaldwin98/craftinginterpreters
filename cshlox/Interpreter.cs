@@ -1,15 +1,16 @@
 ﻿namespace cshlox;
 
-public class Interpreter : IVisitor<object>
+public class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
 {
 
-    public void Interpret(Expression expr)
+    public void Interpret(List<Statement> statements)
     {
         try
         {
-            object value = Evaluate(expr);
-
-            Console.WriteLine(Stringify(value));
+            foreach (Statement statement in statements)
+            {
+                Execute(statement);
+            }
         }
         catch (RuntimeError error)
         {
@@ -92,6 +93,21 @@ public class Interpreter : IVisitor<object>
         return null;
     }
 
+    public object VisitStatementExpressionStatement(StatementExpression statement)
+    {
+        Evaluate(statement.Expr);
+
+        return null;
+    }
+
+    public object VisitPrintStatement(Print statement)
+    {
+        object value = Evaluate(statement.Expr);
+        Console.WriteLine(Stringify(value));
+
+        return null;
+    }
+
     private void CheckNumberOperand(Token op, object operand)
     {
         if (operand is double) { return; }
@@ -107,7 +123,7 @@ public class Interpreter : IVisitor<object>
     }
 
     public bool IsTruthy(object obj)
-    {       
+    {
         if (obj == null) { return false; }
         if (obj is bool) { return (bool)obj; }
 
@@ -143,5 +159,10 @@ public class Interpreter : IVisitor<object>
     public object Evaluate(Expression expr)
     {
         return expr.Accept(this);
+    }
+
+    public void Execute(Statement statement)
+    {
+        statement.Accept(this);
     }
 }

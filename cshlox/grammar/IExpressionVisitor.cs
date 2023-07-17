@@ -1,6 +1,6 @@
 namespace cshlox;
 
-public interface IVisitor<T>
+public interface IExpressionVisitor<T>
 {
 	T VisitBinaryExpression(Binary expression);
 	T VisitGroupingExpression(Grouping expression);

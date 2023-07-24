@@ -14,7 +14,7 @@ public class Cshlox
             Run(text);
 
             if (HadError) { Environment.Exit(65); }
-            if (HadRuntimeError) { Environment.Exit(70); }
+            if (HadRuntimeError) { Environment .Exit(70); }
         }
         catch (Exception ex)
         {
@@ -39,7 +39,8 @@ public class Cshlox
             }
             catch (Exception)
             {
-                break;
+                continue;
+                // break;
             }
             HadError = false;
         }
@@ -51,7 +52,7 @@ public class Cshlox
         List<Token> tokens = scanner.ScanTokens();
 
         Parser parser = new Parser(tokens);
-        List<Statement> statements = parser.Parse();
+        List<Stmt> statements = parser.Parse();
 
         if (HadError) return;
 

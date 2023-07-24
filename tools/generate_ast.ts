@@ -10,30 +10,38 @@ type AstType = {
     fields: string[];
 };
 
+type Ast = {
+    baseName: string;
+    children: AstType[];
+};
+
 const outputDir = args[0];
-defineAst(outputDir, 'Expression', [
-    { name: 'Binary', fields: ['Expression left', 'Token op', 'Expression right'] },
-    { name: 'Grouping', fields: ['Expression expr'] },
-    { name: 'Literal', fields: ['object value'] },
-    { name: 'Unary', fields: ['Token op', 'Expression right'] },
-]);
 
-defineAst(outputDir, 'Statement', [
-    { name: 'StatementExpression', fields: ['Expression expr'] },
-    { name: 'Print', fields: ['Expression expr'] },
-]);
+const expressions: Ast = {
+    baseName: 'Expr',
+    children: [
+        { name: 'Binary', fields: ['Expr left', 'Token op', 'Expr right'] },
+        { name: 'Grouping', fields: ['Expr expr'] },
+        { name: 'Literal', fields: ['object value'] },
+        { name: 'Unary', fields: ['Token op', 'Expr right'] },
+        { name: 'Var', fields: ['Token name'] },
+    ],
+};
 
-defineVisitorInterface(outputDir, 'Expression', [
-    { name: 'Binary', fields: ['Expression left', 'Token op', 'Expression right'] },
-    { name: 'Grouping', fields: ['Expression expr'] },
-    { name: 'Literal', fields: ['object value'] },
-    { name: 'Unary', fields: ['Token op', 'Expression right'] },
-]);
+const statements: Ast = {
+    baseName: 'Stmt',
+    children: [
+        { name: 'Expression', fields: ['Expr expr'] },
+        { name: 'Print', fields: ['Expr expr'] },
+        { name: 'Var', fields: ['Token name', 'Expr initializer'] },
+    ]
+};
 
-defineVisitorInterface(outputDir, 'Statement', [
-    { name: 'StatementExpression', fields: ['Expression expr'] },
-    { name: 'Print', fields: ['Expression expr'] },
-]);
+defineAst(outputDir, expressions);
+defineAst(outputDir, statements);
+
+defineVisitorInterface(outputDir, 'Expr', expressions.children);
+defineVisitorInterface(outputDir, 'Stmt', statements.children);
 
 function defineVisitorInterface(outputDir: string, baseName: string, types: AstType[]) {
     let output = `namespace cshlox;` + '\n\n';
@@ -42,7 +50,8 @@ function defineVisitorInterface(outputDir: string, baseName: string, types: AstT
     output += '{' + '\n';
 
     types.forEach((type) => {
-        output += '\tT Visit' + type.name + baseName + '(' + type.name + ' ' + baseName.toLowerCase() + ');' + '\n';
+        // implement this code below but using string interpolation
+        output += `\tT Visit${type.name}${baseName}(${baseName}.${type.name} ${baseName.toLowerCase()});` + '\n'; 
     });
 
     output += '}' + '\n';
@@ -50,56 +59,49 @@ function defineVisitorInterface(outputDir: string, baseName: string, types: AstT
     fs.writeFileSync(outputDir + `/I${baseName}Visitor.cs`, output);
 }
 
-function defineVisitor(baseName: string, name: string) {
-    let output = `\tpublic override T Accept<T>(I${baseName}Visitor<T> visitor)\n\t{` + '\n';
+function defineVisitor(baseName: string, typeName: string) {
+    let output = `\t\tpublic override T Accept<T>(I${baseName}Visitor<T> visitor)\n\t\t{` + '\n';
 
-    output += '\t\treturn visitor.Visit' + name + baseName + '(this);' + '\n';
-    output += '\t}' + '\n';
+    output += '\t\t\treturn visitor.Visit' + typeName + baseName + '(this);' + '\n';
+    output += '\t\t}' + '\n';
 
     return output;
 }
 
-function defineAst(outputDir: string, baseName: string, types: AstType[], generateVisitor: boolean = true) {
+function defineAst(outputDir: string, ast: Ast) {
     // make a new file for each type in c#
     // define our abstract base class
     let output = `namespace cshlox;` + '\n\n';
-    output += `public abstract class ${baseName}\n{` + '\n';
-    if (generateVisitor) {
-        output += `\tpublic abstract T Accept<T>(I${baseName}Visitor<T> visitor);` + '\n';
-    }
-    output += '}' + '\n\n';
+    output += `public abstract class ${ast.baseName}\n{` + '\n';
+    output += `\tpublic abstract T Accept<T>(I${ast.baseName}Visitor<T> visitor);` + '\n';
 
-    fs.writeFileSync(outputDir + '/' + baseName + '.cs', output);
-
-    types.forEach((type) => {
-        let output = `namespace cshlox;` + '\n\n';
-
-        output += `public class ${type.name} : ${baseName}\n{` + '\n';
+    ast.children.forEach((type) => {
+        output += '\n';
+        output += `\tpublic class ${type.name} : ${ast.baseName}\n\t{` + '\n';
         type.fields.forEach((field) => {
             let fields = field.split(' ');
             let fieldName = fields[1].charAt(0).toUpperCase() + fields[1].slice(1);
-            output += `\tpublic ${fields[0]} ${fieldName} { get; }` + '\n';
+            output += `\t\tpublic ${fields[0]} ${fieldName} { get; }` + '\n';
         });
 
         output += '\n';
-        output += `\tpublic ${type.name}(${type.fields.join(', ')})\n\t{` + '\n';
+        output += `\t\tpublic ${type.name}(${type.fields.join(', ')})\n\t\t{` + '\n';
         type.fields.forEach((field) => {
             let fields = field.split(' ');
             let fieldName = fields[1].charAt(0).toUpperCase() + fields[1].slice(1);
-            output += `\t\t${fieldName} = ${fields[1]};` + '\n';
+            output += `\t\t\t${fieldName} = ${fields[1]};` + '\n';
         });
 
-        output += '\t}' + '\n\n';
-        if (generateVisitor) {
-            output += defineVisitor(baseName, type.name);
-        }
-        output += '}';
-        // create the file if it doesn't exist
-
-        if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir);
-        }
-
-        fs.writeFileSync(`${outputDir}/${type.name}.cs`, output);
+        output += '\t\t}' + '\n\n';
+        output += defineVisitor(ast.baseName, type.name);
+        output += '\t}' + '\n';
     });
+
+    output += '}' + '\n';
+
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir);
+    }
+
+    fs.writeFileSync(`${outputDir}/${ast.baseName}.cs`, output);
 }

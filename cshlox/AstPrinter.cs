@@ -2,42 +2,47 @@
 
 namespace cshlox;
 
-public class AstPrinter : IExpressionVisitor<string>
+public class AstPrinter : IExprVisitor<string>
 {
-    public string Print(Expression expr)
+    public string Print(Expr expr)
     {
         return expr.Accept(this);
     }
 
-    public string VisitBinaryExpression(Binary expression)
+    public string VisitBinaryExpr(Expr.Binary expression)
     {
         return Parenthesize(expression.Op.Lexeme, expression.Left, expression.Right);
     }
 
-    public string VisitGroupingExpression(Grouping expression)
+    public string VisitGroupingExpr(Expr.Grouping expression)
     {
         return Parenthesize("group", expression.Expr);
     }
 
-    public string VisitLiteralExpression(Literal expression)
+    public string VisitLiteralExpr(Expr.Literal expression)
     {
         if (expression.Value == null) { return "nil"; }
 
         return expression.Value.ToString();
     }
 
-    public string VisitUnaryExpression(Unary expression)
+    public string VisitUnaryExpr(Expr.Unary expression)
     {
         return Parenthesize(expression.Op.Lexeme, expression.Right);
     }
 
-    private string Parenthesize(string name, params Expression[] expressions)
+    public string VisitVarExpr(Expr.Var expression)
+    {
+        throw new NotImplementedException();
+    }
+
+    private string Parenthesize(string name, params Expr[] expressions)
     {
         StringBuilder builder = new StringBuilder();
 
         builder.Append("(").Append(name);
 
-        foreach (Expression expr in expressions)
+        foreach (Expr expr in expressions)
         {
             builder.Append(" ");
             builder.Append(expr.Accept(this));

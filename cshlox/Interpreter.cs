@@ -1,13 +1,14 @@
 ﻿namespace cshlox;
 
-public class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
+public class Interpreter : IExprVisitor<object>, IStmtVisitor<object>
 {
+    private Env _environment = new Env();
 
-    public void Interpret(List<Statement> statements)
+    public void Interpret(List<Stmt> statements)
     {
         try
         {
-            foreach (Statement statement in statements)
+            foreach (Stmt statement in statements)
             {
                 Execute(statement);
             }
@@ -18,7 +19,7 @@ public class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
         }
     }
 
-    public object VisitBinaryExpression(Binary expression)
+    public object VisitBinaryExpr(Expr.Binary expression)
     {
         object left = Evaluate(expression.Left);
         object right = Evaluate(expression.Right);
@@ -55,6 +56,11 @@ public class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
                     return (string)left + (string)right;
                 }
 
+                if (left is string && right is double || left is double && right is string)
+                {
+                    return Stringify(left) + Stringify(right);
+                }
+
                 throw new RuntimeError(expression.Op, "Operands must be numbers or two strings.");
             case TokenType.SLASH:
                 CheckNumberOperand(expression.Op, left, right);
@@ -67,17 +73,17 @@ public class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
         return null;
     }
 
-    public object VisitGroupingExpression(Grouping expression)
+    public object VisitGroupingExpr(Expr.Grouping expression)
     {
         return Evaluate(expression.Expr);
     }
 
-    public object VisitLiteralExpression(Literal expression)
+    public object VisitLiteralExpr(Expr.Literal expression)
     {
         return expression.Value;
     }
 
-    public object VisitUnaryExpression(Unary expression)
+    public object VisitUnaryExpr(Expr.Unary expression)
     {
         object right = Evaluate(expression.Right);
 
@@ -93,18 +99,36 @@ public class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
         return null;
     }
 
-    public object VisitStatementExpressionStatement(StatementExpression statement)
+    public object VisitVarExpr(Expr.Var expr)
+    {
+        return _environment.Get(expr.Name);
+    }
+
+    public object VisitExpressionStmt(Stmt.Expression statement)
     {
         Evaluate(statement.Expr);
 
         return null;
     }
 
-    public object VisitPrintStatement(Print statement)
+    public object VisitPrintStmt(Stmt.Print statement)
     {
         object value = Evaluate(statement.Expr);
         Console.WriteLine(Stringify(value));
 
+        return null;
+    }
+
+    public object VisitVarStmt(Stmt.Var statement)
+    {
+        object value = null;
+
+        if (statement.Initializer != null)
+        {
+            value = Evaluate(statement.Initializer);
+        }
+
+        _environment.Define(statement.Name.Lexeme, value);
         return null;
     }
 
@@ -156,12 +180,12 @@ public class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
         return obj.ToString();
     }
 
-    public object Evaluate(Expression expr)
+    public object Evaluate(Expr expr)
     {
         return expr.Accept(this);
     }
 
-    public void Execute(Statement statement)
+    public void Execute(Stmt statement)
     {
         statement.Accept(this);
     }

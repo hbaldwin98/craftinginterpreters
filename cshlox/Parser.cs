@@ -12,131 +12,168 @@ public class Parser
         _tokens = tokens;
     }
 
-    public List<Statement> Parse()
+    public List<Stmt> Parse()
     {
-        List<Statement> statements = new List<Statement>();
-        
+        List<Stmt> statements = new List<Stmt>();
+
         while (!IsAtEnd())
         {
-            statements.Add(Statement());
+            statements.Add(Declaration());
         }
 
         return statements;
     }
 
-    private Expression Expression()
+    private Expr Expr()
     {
         return Equality();
     }
 
-    private Statement Statement()
+    private Stmt Declaration()
+    {
+        try
+        {
+            if (Match(TokenType.VAR)) { return VarDeclaration(); }
+
+            return Stmt();
+        }
+        catch (ParseError)
+        {
+            Synchronize();
+            return null;
+        }
+    }
+
+    private Stmt Stmt()
     {
         if (Match(TokenType.PRINT)) { return PrintStatement(); }
 
         return ExpressionStatement();
     }
 
-    private Statement PrintStatement()
+    private Stmt PrintStatement()
     {
-        Expression value = Expression();
+        Expr value = Expr();
         Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
-        return new Print(value);
+        return new Stmt.Print(value);
     }
 
-    private Statement ExpressionStatement()
+    private Stmt VarDeclaration()
     {
-        Expression expr = Expression();
-        Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
-        return new StatementExpression(expr);
+        Token name = Consume(TokenType.IDENTIFIER, "Expect variable name.");
+
+        Expr initializer = null;
+
+        if (Match(TokenType.EQUAL))
+        {
+            initializer = Expr();
+        }
+
+        Consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+
+        return new Stmt.Var(name, initializer);
     }
 
-    private Expression Equality()
+    private Stmt ExpressionStatement()
     {
-        Expression expr = Compare();
+        Expr expr = Expr();
+
+        Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Expression(expr);
+    }
+
+    private Expr Equality()
+    {
+        Expr expr = Compare();
 
         while (Match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))
         {
             Token op = Previous();
-            Expression right = Compare();
-            expr = new Binary(expr, op, right);
+            Expr right = Compare();
+            expr = new Expr.Binary(expr, op, right);
         }
 
         return expr;
     }
 
-    private Expression Compare()
+    private Expr Compare()
     {
-        Expression expr = Term();
+        Expr expr = Term();
 
         while (Match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL))
         {
             Token op = Previous();
-            Expression right = Term();
-            expr = new Binary(expr, op, right);
+            Expr right = Term();
+            expr = new Expr.Binary(expr, op, right);
         }
 
         return expr;
     }
 
-    private Expression Term()
+    private Expr Term()
     {
-        Expression expr = Factor();
+        Expr expr = Factor();
 
         while (Match(TokenType.MINUS, TokenType.PLUS))
         {
             Token op = Previous();
-            Expression right = Factor();
-            expr = new Binary(expr, op, right);
+            Expr right = Factor();
+            expr = new Expr.Binary(expr, op, right);
         }
 
         return expr;
     }
 
-    private Expression Factor()
+    private Expr Factor()
     {
-        Expression expr = Unary();
+        Expr expr = Unary();
 
         while (Match(TokenType.SLASH, TokenType.STAR))
         {
             Token op = Previous();
-            Expression right = Unary();
-            expr = new Binary(expr, op, right);
+            Expr right = Unary();
+            expr = new Expr.Binary(expr, op, right);
         }
 
         return expr;
     }
 
-    private Expression Unary()
+    private Expr Unary()
     {
         if (Match(TokenType.BANG, TokenType.MINUS))
         {
             Token op = Previous();
-            Expression right = Unary();
-            return new Unary(op, right);
+            Expr right = Unary();
+            return new Expr.Unary(op, right);
         }
 
         return Primary();
     }
 
-    private Expression Primary()
+    private Expr Primary()
     {
-        if (Match(TokenType.FALSE)) { return new Literal(false); }
-        if (Match(TokenType.TRUE)) { return new Literal(true); }
-        if (Match(TokenType.NIL)) { return new Literal(null); }
+        if (Match(TokenType.FALSE)) { return new Expr.Literal(false); }
+        if (Match(TokenType.TRUE)) { return new Expr.Literal(true); }
+        if (Match(TokenType.NIL)) { return new Expr.Literal(null); }
 
         if (Match(TokenType.NUMBER, TokenType.STRING))
         {
-            return new Literal(Previous().Literal);
+            return new Expr.Literal(Previous().Literal);
+        }
+
+        if (Match(TokenType.IDENTIFIER))
+        {
+            return new Expr.Var(Previous());
         }
 
         if (Match(TokenType.LEFT_PAREN))
         {
-            Expression expr = Expression();
+            Expr expr = Expr();
             Consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
-            return new Grouping(expr);
+            return new Expr.Grouping(expr);
         }
 
-        throw Error(Peek(), "Expect Expression.");
+        throw Error(Peek(), "Expect expression.");
     }
 
     private bool Match(params TokenType[] types)

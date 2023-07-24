@@ -132,6 +132,14 @@ public class Interpreter : IExprVisitor<object>, IStmtVisitor<object>
         return null;
     }
 
+    public object VisitAssignExpr(Expr.Assign expr)
+    {
+        object value = Evaluate(expr.Value);
+
+        _environment.Assign(expr.Name, value);
+        return null;
+    }
+
     private void CheckNumberOperand(Token op, object operand)
     {
         if (operand is double) { return; }
@@ -188,5 +196,30 @@ public class Interpreter : IExprVisitor<object>, IStmtVisitor<object>
     public void Execute(Stmt statement)
     {
         statement.Accept(this);
+    }
+
+    public object VisitBlockStmt(Stmt.Block stmt)
+    {
+        ExecuteBlock(stmt.Statements, new Env(_environment));
+        return null;
+    }
+
+    private void ExecuteBlock(List<Stmt> statements, Env environment)
+    {
+        Env previous = _environment;
+
+        try
+        {
+            _environment = environment;
+
+            foreach (Stmt statement in statements)
+            {
+                Execute(statement);
+            }
+        }
+        finally
+        {
+            _environment = previous;
+        }
     }
 }

@@ -4,6 +4,23 @@ public abstract class Expr
 {
 	public abstract T Accept<T>(IExprVisitor<T> visitor);
 
+	public class Assign : Expr
+	{
+		public Token Name { get; }
+		public Expr Value { get; }
+
+		public Assign(Token name, Expr value)
+		{
+			Name = name;
+			Value = value;
+		}
+
+		public override T Accept<T>(IExprVisitor<T> visitor)
+		{
+			return visitor.VisitAssignExpr(this);
+		}
+	}
+
 	public class Binary : Expr
 	{
 		public Expr Left { get; }

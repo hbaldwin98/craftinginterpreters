@@ -20,6 +20,7 @@ const outputDir = args[0];
 const expressions: Ast = {
     baseName: 'Expr',
     children: [
+        { name: 'Assign', fields: ['Token name', 'Expr value'] },
         { name: 'Binary', fields: ['Expr left', 'Token op', 'Expr right'] },
         { name: 'Grouping', fields: ['Expr expr'] },
         { name: 'Literal', fields: ['object value'] },
@@ -31,6 +32,7 @@ const expressions: Ast = {
 const statements: Ast = {
     baseName: 'Stmt',
     children: [
+        { name: 'Block', fields: ['List<Stmt> statements'] },
         { name: 'Expression', fields: ['Expr expr'] },
         { name: 'Print', fields: ['Expr expr'] },
         { name: 'Var', fields: ['Token name', 'Expr initializer'] },
@@ -38,39 +40,12 @@ const statements: Ast = {
 };
 
 defineAst(outputDir, expressions);
+defineVisitorInterface(outputDir, expressions);
+
 defineAst(outputDir, statements);
-
-defineVisitorInterface(outputDir, 'Expr', expressions.children);
-defineVisitorInterface(outputDir, 'Stmt', statements.children);
-
-function defineVisitorInterface(outputDir: string, baseName: string, types: AstType[]) {
-    let output = `namespace cshlox;` + '\n\n';
-
-    output += `public interface I${baseName}Visitor<T>` + '\n';
-    output += '{' + '\n';
-
-    types.forEach((type) => {
-        // implement this code below but using string interpolation
-        output += `\tT Visit${type.name}${baseName}(${baseName}.${type.name} ${baseName.toLowerCase()});` + '\n'; 
-    });
-
-    output += '}' + '\n';
-
-    fs.writeFileSync(outputDir + `/I${baseName}Visitor.cs`, output);
-}
-
-function defineVisitor(baseName: string, typeName: string) {
-    let output = `\t\tpublic override T Accept<T>(I${baseName}Visitor<T> visitor)\n\t\t{` + '\n';
-
-    output += '\t\t\treturn visitor.Visit' + typeName + baseName + '(this);' + '\n';
-    output += '\t\t}' + '\n';
-
-    return output;
-}
+defineVisitorInterface(outputDir, statements);
 
 function defineAst(outputDir: string, ast: Ast) {
-    // make a new file for each type in c#
-    // define our abstract base class
     let output = `namespace cshlox;` + '\n\n';
     output += `public abstract class ${ast.baseName}\n{` + '\n';
     output += `\tpublic abstract T Accept<T>(I${ast.baseName}Visitor<T> visitor);` + '\n';
@@ -105,3 +80,30 @@ function defineAst(outputDir: string, ast: Ast) {
 
     fs.writeFileSync(`${outputDir}/${ast.baseName}.cs`, output);
 }
+
+function defineVisitorInterface(outputDir: string, ast: Ast) {
+    let output = `namespace cshlox;` + '\n\n';
+
+    output += `public interface I${ast.baseName}Visitor<T>` + '\n';
+    output += '{' + '\n';
+
+    ast.children.forEach((type) => {
+        // implement this code below but using string interpolation
+        output += `\tT Visit${type.name}${ast.baseName}(${ast.baseName}.${type.name} ${ast.baseName.toLowerCase()});` + '\n';
+    });
+
+    output += '}' + '\n';
+
+    fs.writeFileSync(outputDir + `/I${ast.baseName}Visitor.cs`, output);
+}
+
+function defineVisitor(baseName: string, typeName: string) {
+    let output = `\t\tpublic override T Accept<T>(I${baseName}Visitor<T> visitor)\n\t\t{` + '\n';
+
+    output += '\t\t\treturn visitor.Visit' + typeName + baseName + '(this);' + '\n';
+    output += '\t\t}' + '\n';
+
+    return output;
+}
+
+

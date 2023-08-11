@@ -46,10 +46,88 @@ public class Parser
 
     private Stmt Statement()
     {
+        if (Match(TokenType.FOR)) { return ForStatement(); }
+        if (Match(TokenType.IF)) { return IfStatement(); }
         if (Match(TokenType.PRINT)) { return PrintStatement(); }
+        if (Match(TokenType.WHILE)) { return WhileStatement(); }
         if (Match(TokenType.LEFT_BRACE)) { return new Stmt.Block(Block()); }
 
         return ExpressionStatement();
+    }
+
+    private Stmt ForStatement()
+    {
+        Consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.");
+
+        Stmt initializer;
+
+        if (Match(TokenType.SEMICOLON))
+        {
+            initializer = null;
+        }
+        else if (Match(TokenType.VAR))
+        {
+            initializer = VarDeclaration();
+        }
+        else
+        {
+            initializer = ExpressionStatement();
+        }
+
+        Expr condition = null;
+        if (!Check(TokenType.SEMICOLON))
+        {
+            condition = Expression();
+        }
+        Consume(TokenType.SEMICOLON, "Expect ';' after loop condition.");
+
+        Expr increment = null;
+        if (!Check(TokenType.RIGHT_PAREN))
+        {
+            increment = Expression();
+        }
+        Consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.");
+        Stmt body = Statement();
+
+        if (increment != null)
+        {
+            body = new Stmt.Block(new List<Stmt>
+            {
+                body,
+                new Stmt.Expression(increment)
+            });
+        }
+
+        if (condition == null)
+        {
+            condition = new Expr.Literal(true);
+        }
+
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null)
+        {
+            body = new Stmt.Block(new List<Stmt> { initializer, body });
+        }
+
+        return body;
+    }
+
+    private Stmt IfStatement()
+    {
+        Consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'.");
+        Expr condition = Expression();
+        Consume(TokenType.RIGHT_PAREN, "Expect ')' after 'if'.");
+
+        Stmt thenBranch = Statement();
+        Stmt elseBranch = null;
+
+        if (Match(TokenType.ELSE))
+        {
+            elseBranch = Statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt PrintStatement()
@@ -75,6 +153,16 @@ public class Parser
         return new Stmt.Var(name, initializer);
     }
 
+    private Stmt WhileStatement()
+    {
+        Consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.)");
+        Expr condition = Expression();
+        Consume(TokenType.RIGHT_PAREN, "Expect ')' after condition.");
+        Stmt body = Statement();
+
+        return new Stmt.While(condition, body);
+    }
+
     private Stmt ExpressionStatement()
     {
         Expr expr = Expression();
@@ -91,21 +179,21 @@ public class Parser
         {
             statements.Add(Declaration());
         }
-        
+
         Consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
         return statements;
     }
 
     private Expr Assignment()
     {
-        Expr expr = Equality();
+        Expr expr = Or();
 
-        if (Match(TokenType.EQUAL)) 
+        if (Match(TokenType.EQUAL))
         {
             Token equals = Previous();
             Expr value = Assignment();
 
-            if (expr is Expr.Var) 
+            if (expr is Expr.Var)
             {
                 Token name = (expr as Expr.Var).Name;
 
@@ -113,6 +201,34 @@ public class Parser
             }
 
             Error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
+    }
+
+    private Expr Or()
+    {
+        Expr expr = And();
+
+        while (Match(TokenType.OR))
+        {
+            Token op = Previous();
+            Expr right = And();
+            expr = new Expr.Logical(expr, op, right);
+        }
+
+        return expr;
+    }
+
+    private Expr And()
+    {
+        Expr expr = Equality();
+
+        while (Match(TokenType.AND))
+        {
+            Token op = Previous();
+            Expr right = Equality();
+            expr = new Expr.Logical(expr, op, right);
         }
 
         return expr;

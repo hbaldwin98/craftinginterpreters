@@ -34,6 +34,25 @@ public abstract class Stmt
 		}
 	}
 
+	public class If : Stmt
+	{
+		public Expr Condition { get; }
+		public Stmt ThenBranch { get; }
+		public Stmt ElseBranch { get; }
+
+		public If(Expr condition, Stmt thenBranch, Stmt elseBranch)
+		{
+			Condition = condition;
+			ThenBranch = thenBranch;
+			ElseBranch = elseBranch;
+		}
+
+		public override T Accept<T>(IStmtVisitor<T> visitor)
+		{
+			return visitor.VisitIfStmt(this);
+		}
+	}
+
 	public class Print : Stmt
 	{
 		public Expr Expr { get; }
@@ -46,6 +65,23 @@ public abstract class Stmt
 		public override T Accept<T>(IStmtVisitor<T> visitor)
 		{
 			return visitor.VisitPrintStmt(this);
+		}
+	}
+
+	public class While : Stmt
+	{
+		public Expr Condition { get; }
+		public Stmt Body { get; }
+
+		public While(Expr condition, Stmt body)
+		{
+			Condition = condition;
+			Body = body;
+		}
+
+		public override T Accept<T>(IStmtVisitor<T> visitor)
+		{
+			return visitor.VisitWhileStmt(this);
 		}
 	}
 

@@ -70,6 +70,25 @@ public abstract class Expr
 		}
 	}
 
+	public class Logical : Expr
+	{
+		public Expr Left { get; }
+		public Token Op { get; }
+		public Expr Right { get; }
+
+		public Logical(Expr left, Token op, Expr right)
+		{
+			Left = left;
+			Op = op;
+			Right = right;
+		}
+
+		public override T Accept<T>(IExprVisitor<T> visitor)
+		{
+			return visitor.VisitLogicalExpr(this);
+		}
+	}
+
 	public class Unary : Expr
 	{
 		public Token Op { get; }

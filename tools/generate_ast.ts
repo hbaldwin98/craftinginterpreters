@@ -24,6 +24,7 @@ const expressions: Ast = {
         { name: 'Binary', fields: ['Expr left', 'Token op', 'Expr right'] },
         { name: 'Grouping', fields: ['Expr expr'] },
         { name: 'Literal', fields: ['object value'] },
+        { name: 'Logical', fields: ['Expr left', 'Token op', 'Expr right']},
         { name: 'Unary', fields: ['Token op', 'Expr right'] },
         { name: 'Var', fields: ['Token name'] },
     ],
@@ -34,7 +35,9 @@ const statements: Ast = {
     children: [
         { name: 'Block', fields: ['List<Stmt> statements'] },
         { name: 'Expression', fields: ['Expr expr'] },
+        { name: 'If', fields: ['Expr condition', 'Stmt thenBranch', 'Stmt elseBranch']},
         { name: 'Print', fields: ['Expr expr'] },
+        { name: 'While', fields: ['Expr condition', 'Stmt body'] },
         { name: 'Var', fields: ['Token name', 'Expr initializer'] },
     ]
 };

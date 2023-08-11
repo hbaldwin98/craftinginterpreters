@@ -83,6 +83,22 @@ public class Interpreter : IExprVisitor<object>, IStmtVisitor<object>
         return expression.Value;
     }
 
+    public object VisitLogicalExpr(Expr.Logical expression)
+    {
+        Object left = Evaluate(expression.Left);
+
+        if (expression.Op.Type == TokenType.OR)
+        {
+            if (IsTruthy(left)) { return left; }
+        }
+        else
+        {
+            if (!IsTruthy(left)) { return left; }
+        }
+
+        return Evaluate(expression.Right);
+    }
+
     public object VisitUnaryExpr(Expr.Unary expression)
     {
         object right = Evaluate(expression.Right);
@@ -111,10 +127,34 @@ public class Interpreter : IExprVisitor<object>, IStmtVisitor<object>
         return null;
     }
 
+    public object VisitIfStmt(Stmt.If statement)
+    {
+        if (IsTruthy(Evaluate(statement.Condition)))
+        {
+            Execute(statement.ThenBranch);
+        }
+        else if (statement.ElseBranch != null)
+        {
+            Execute(statement.ElseBranch);
+        }
+
+        return null;
+    }
+
     public object VisitPrintStmt(Stmt.Print statement)
     {
         object value = Evaluate(statement.Expr);
         Console.WriteLine(Stringify(value));
+
+        return null;
+    }
+    
+    public object VisitWhileStmt(Stmt.While statement)
+    {
+        while (IsTruthy(Evaluate(statement.Condition)))
+        {
+            Execute(statement.Body);
+        }
 
         return null;
     }
